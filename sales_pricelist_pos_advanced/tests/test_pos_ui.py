@@ -72,9 +72,9 @@ class TestAspPosUi(TestPointOfSaleHttpCommon):
                                    msg="%s x%s" % (name, qty))
 
     def test_pos_client_applies_percentage_fee(self):
-        self.main_pos_config.open_ui()
+        self.main_pos_config.with_user(self.pos_user).open_ui()
         # See point_of_sale tests: qweb of modules is only served once installed.
         self.env['ir.module.module'].search(
             [('name', 'in', ('point_of_sale', 'sales_pricelist_pos_advanced'))]).state = 'installed'
         self.start_tour("/pos/ui?config_id=%d" % self.main_pos_config.id,
-                        'asp_pos_percent_fee_tour', login="accountman")
+                        'asp_pos_percent_fee_tour', login="pos_user")

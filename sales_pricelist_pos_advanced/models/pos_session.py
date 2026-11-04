@@ -18,12 +18,15 @@ class PosSession(models.Model):
         context: UoM / packaging targeted rules must never reach it."""
         return [item for item in items if item.get('asp_target', GENERIC) == GENERIC]
 
-    def _get_pos_ui_product_pricelist(self, params):
-        pricelists = super()._get_pos_ui_product_pricelist(params)
+    def _prepare_product_pricelists(self, pricelists):
+        # Odoo 17: called by _get_pos_ui_product_pricelist (session loading,
+        # with or without limited product loading).
+        pricelists = super()._prepare_product_pricelists(pricelists)
         for pricelist in pricelists:
             pricelist['items'] = self._asp_generic_items(pricelist.get('items', []))
         return pricelists
 
     def get_pos_ui_product_pricelist_item_by_product(self, product_tmpl_ids, product_ids):
+        # Products loaded on demand (limited product loading).
         items = super().get_pos_ui_product_pricelist_item_by_product(product_tmpl_ids, product_ids)
         return self._asp_generic_items(items)
