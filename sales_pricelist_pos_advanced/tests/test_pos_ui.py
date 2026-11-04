@@ -11,8 +11,8 @@ from odoo.addons.point_of_sale.tests.test_frontend import TestPointOfSaleHttpCom
 class TestAspPosUi(TestPointOfSaleHttpCommon):
 
     @classmethod
-    def setUpClass(cls, chart_template_ref=None):
-        super().setUpClass(chart_template_ref=chart_template_ref)
+    def setUpClass(cls):
+        super().setUpClass()
         env = cls.env
         cls.fee_product = env['product.product'].create({
             'name': 'ASP POS Fee Product',
@@ -42,12 +42,18 @@ class TestAspPosUi(TestPointOfSaleHttpCommon):
                 'price_surcharge_percent_base': 'discounted'})
             | pricelist('ASP POS Fee on cost', {
                 'base': 'standard_price', 'price_surcharge_percent': 30, 'price_surcharge': 2.0})
+            | pricelist('ASP POS Fee markup on cost', {
+                'base': 'standard_price', 'price_markup': 30, 'price_surcharge_percent': 10})
             | pricelist('ASP POS Fee capped', {'price_surcharge_percent': 50, 'price_max_margin': 20.0})
             | pricelist('ASP POS Fee chained', {
                 'base': 'pricelist', 'base_pricelist_id': on_base.id, 'price_surcharge_percent': 5})
             | pricelist('ASP POS Fee min qty', {'price_surcharge_percent': 10, 'min_quantity': 10})
             | pricelist('ASP POS No fee', {'price_discount': 10})
         )
+        box = env['product.packaging'].create({
+            'name': 'Box of 5', 'product_id': cls.fee_product.id, 'qty': 5, 'sales': True})
+        cls.pos_pricelists |= pricelist('ASP POS Packaging only', {
+            'compute_price': 'fixed', 'fixed_price': 450.0, 'packaging_id': box.id})
         cls.main_pos_config.write({
             'use_pricelist': True,
             'available_pricelist_ids': [Command.link(pl.id) for pl in cls.pos_pricelists],
@@ -60,11 +66,13 @@ class TestAspPosUi(TestPointOfSaleHttpCommon):
             ('ASP POS Fee on discounted', 1): 94.5,
             ('ASP POS Fee rounded', 1): 104.5,
             ('ASP POS Fee on cost', 1): 67.0,
+            ('ASP POS Fee markup on cost', 1): 70.0,
             ('ASP POS Fee capped', 1): 120.0,
             ('ASP POS Fee chained', 1): 99.75,
             ('ASP POS Fee min qty', 1): 100.0,
             ('ASP POS Fee min qty', 10): 110.0,
             ('ASP POS No fee', 1): 90.0,
+            ('ASP POS Packaging only', 5): 100.0,
         }
         by_name = {pl.name: pl for pl in self.pos_pricelists}
         for (name, qty), price in expected.items():
@@ -72,9 +80,5 @@ class TestAspPosUi(TestPointOfSaleHttpCommon):
                                    msg="%s x%s" % (name, qty))
 
     def test_pos_client_applies_percentage_fee(self):
-        self.main_pos_config.open_ui()
-        # See point_of_sale tests: qweb of modules is only served once installed.
-        self.env['ir.module.module'].search(
-            [('name', 'in', ('point_of_sale', 'sales_pricelist_pos_advanced'))]).state = 'installed'
-        self.start_tour("/pos/ui?config_id=%d" % self.main_pos_config.id,
-                        'asp_pos_percent_fee_tour', login="accountman")
+        self.main_pos_config.with_user(self.pos_user).open_ui()
+        self.start_pos_tour('asp_pos_percent_fee_tour')
