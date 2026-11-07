@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Advanced Sales Pricelist - Point of Sale bridge',
-    'version': '19.0.1.1.1',
+    'version': '20.0.1.1.0',
     'category': 'Sales/Point of Sale',
     'summary': 'Companion of Advanced Sales Pricelist: percentage extra fees in the POS, '
                'UoM / packaging rules kept for quotations. Installed automatically.',
     'description': """
-The Odoo 19 Point of Sale evaluates pricelist rules in the browser and does not
+The Odoo 20 Point of Sale evaluates pricelist rules in the browser and does not
 know about the Unit of Measure / Packaging conditions added by
 "Advanced Sales Pricelist". Without this bridge, a rule such as
 "Carton of 24 = 216.00" would be applied by the POS as 216.00 per unit.

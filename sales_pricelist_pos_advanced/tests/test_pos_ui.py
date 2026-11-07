@@ -28,7 +28,10 @@ class TestAspPosUi(TestPointOfSaleHttpCommon):
             return Pricelist.create({
                 'name': name,
                 'item_ids': [Command.create(dict(
-                    {'applied_on': '1_product', 'product_tmpl_id': tmpl.id, 'compute_price': 'formula'},
+                    # Odoo 20 rule types: discount (sales price / pricelist) or
+                    # markup (surcharge, also on the cost)
+                    {'product_tmpl_id': tmpl.id,
+                     'compute_price': 'markup' if rule.get('base') == 'standard_price' else 'discount'},
                     **rule)) for rule in rules],
             })
 
@@ -50,7 +53,7 @@ class TestAspPosUi(TestPointOfSaleHttpCommon):
             | pricelist('ASP POS Fee min qty', {'price_surcharge_percent': 10, 'min_quantity': 10})
             | pricelist('ASP POS No fee', {'price_discount': 10})
         )
-        # Odoo 19: a packaging is a unit listed in the product's Packagings
+        # Odoo 19+: a packaging is a unit listed in the product's Packagings
         box = env['uom.uom'].create({'name': 'ASP Box of 5', 'relative_factor': 5,
                                      'relative_uom_id': env.ref('uom.product_uom_unit').id})
         cls.fee_product.uom_ids = box

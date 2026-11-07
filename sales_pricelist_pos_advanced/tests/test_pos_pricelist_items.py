@@ -8,10 +8,11 @@ from odoo.addons.sales_pricelist_advanced.tests.common import AspCommon
 class TestPosPricelistItems(AspCommon):
 
     def _pos_data(self):
-        """Minimal loader payload, as built by pos.session.load_data (Odoo 18)."""
+        """Minimal loader payload (Odoo 20: already loaded records as recordsets)."""
         return {
-            'product.product': [{'id': self.product.id, 'product_tmpl_id': self.tmpl.id}],
-            'product.pricelist': [{'id': self.pricelist.id}],
+            'product.product': self.product,
+            'product.pricelist': self.pricelist,
+            'product.category': self.product.categ_id,
         }
 
     def test_targeted_rules_not_sent_to_pos(self):
@@ -20,7 +21,7 @@ class TestPosPricelistItems(AspCommon):
         self._product_item(uom_id=self.uom_dozen.id, fixed_price=100.0)
         Item = self.env['product.pricelist.item']
         config = self.env['pos.config'].create({'name': 'ASP config domain'})
-        items = Item.search(Item._load_pos_data_domain(self._pos_data(), config))
+        items = Item.search(Item._load_pos_data_domain(self._pos_data()))
         self.assertEqual(items, generic)
         fields = Item._load_pos_data_fields(config)
         for fname in ('asp_target', 'price_surcharge_percent', 'price_surcharge_percent_base'):

@@ -5,13 +5,13 @@ import { patch } from "@web/core/utils/patch";
 import { roundPrecision } from "@web/core/utils/numbers";
 
 /**
- * Port of product.pricelist.item._asp_apply_formula (Python): standard Odoo 19
- * formula extended with the percentage extra fee.
+ * Port of product.pricelist.item._asp_apply_formula (Python): standard Odoo 20
+ * discount / surcharge computation extended with the percentage extra fee.
  * Order: discount (or markup on cost) -> rounding -> extra fees -> min/max margins.
  */
 export function aspApplyFormula(rule, basePrice) {
     const priceLimit = basePrice;
-    // Cost-based rules show a markup, stored as price_discount = -markup.
+    // A surcharge (markup) is stored as price_discount = -markup.
     let price = basePrice - basePrice * ((rule.price_discount || 0) / 100);
     if (rule.price_round) {
         price = roundPrecision(price, rule.price_round);
@@ -35,21 +35,14 @@ export function aspApplyFormula(rule, basePrice) {
 
 patch(ProductTemplate.prototype, {
     /**
-     * Same rule selection as ProductTemplateAccounting.getPrice (Odoo 19):
+     * Same rule selection as ProductTemplateAccounting.getPrice (Odoo 20):
      * variant rules, then template, category and global rules.
-     * Lot-tracked lines use the quantity of all lines of the product, as in the
-     * standard method; computed here without touching `related_lines`.
      */
-    _aspGetRule(pricelist, quantity, variant, original_line) {
+    _aspGetRule(pricelist, quantity, variant) {
         if (!pricelist) {
             return null;
         }
         const productTmpl = variant?.product_tmpl_id || this;
-        if (original_line && original_line.isLotTracked() && variant) {
-            quantity = original_line.order_id.lines
-                .filter((line) => line.product_id.id == variant.id)
-                .reduce((sum, line) => sum + line.getQuantity(), 0);
-        }
         let rule = null;
         if (variant) {
             rule = pricelist.findBestRule(pricelist.getRulesByProductId(variant.id), quantity);
@@ -81,11 +74,11 @@ patch(ProductTemplate.prototype, {
         original_line = false,
         related_lines = []
     ) {
-        const rule = this._aspGetRule(pricelist, quantity, variant, original_line);
-        if (!rule || rule.compute_price !== "formula" || !rule.price_surcharge_percent) {
+        const rule = this._aspGetRule(pricelist, quantity, variant);
+        if (!rule || rule.compute_price === "fixed" || !rule.price_surcharge_percent) {
             return super.getPrice(...arguments);
         }
-        // Base price, exactly as in ProductTemplateAccounting.getPrice (Odoo 19)
+        // Base price, exactly as in ProductTemplateAccounting.getPrice (Odoo 20)
         const standardPrice = variant ? variant.standard_price : this.standard_price;
         let price = (variant ? variant.lst_price : this.list_price) + (price_extra || 0);
         if (rule.base === "pricelist") {
@@ -95,7 +88,7 @@ patch(ProductTemplate.prototype, {
         } else if (rule.base === "standard_price") {
             price = standardPrice;
         }
-        const posCurrency = this.models["pos.config"].getFirst().currency_id;
+        const posCurrency = this.config.currency_id;
         const pricelistCurrency = pricelist.currency_id;
         const convert = pricelistCurrency && posCurrency && pricelistCurrency.id !== posCurrency.id;
         if (convert) {
