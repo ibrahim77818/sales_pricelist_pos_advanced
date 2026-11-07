@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Advanced Sales Pricelist - Point of Sale bridge',
-    'version': '18.0.1.1.0',
+    'version': '18.0.1.1.1',
     'category': 'Sales/Point of Sale',
     'summary': 'Companion of Advanced Sales Pricelist: percentage extra fees in the POS, '
                'UoM / packaging rules kept for quotations. Installed automatically.',
@@ -22,7 +22,7 @@ This module (installed automatically):
     'images': ['static/description/banner.png'],
     'assets': {
         'point_of_sale._assets_pos': [
-            'sales_pricelist_pos_advanced/static/src/**/*',
+            'sales_pricelist_pos_advanced/static/src/app/**/*',
         ],
         'web.assets_tests': [
             'sales_pricelist_pos_advanced/static/tests/tours/**/*',
